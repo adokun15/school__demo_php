@@ -12,6 +12,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         ? trim($_POST["full_name"])
         : "";
 
+    $username = isset($_POST["username"])
+        ? trim($_POST["username"])
+        : "";
+
     $date_of_birth = isset($_POST["date_of_birth"])
         ? $_POST["date_of_birth"]
         : "";
@@ -32,40 +36,36 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         ? $_POST["confirm_password"]
         : "";
 
-
-    /*
-     * Validate form
-     */
-
+        //Check if student is older than 16;
+    $DobConverted = DateTime::createFromFormat(
+    'Y-m-d',
+    $date_of_birth
+);
+    
+    $today = new DateTime();
+    $age = $today->diff($DobConverted)->y;
+        
     if (
         empty($full_name) ||
         empty($date_of_birth) ||
         empty($gender) ||
         empty($phone) ||
+        empty($username) ||
         empty($password) ||
         empty($confirm_password)
     ) {
-
         $error = "Please fill in all fields.";
-
     } elseif ($password !== $confirm_password) {
-
         $error = "Passwords do not match.";
-
-    } elseif (strlen($password) < 8) {
-
+    } elseif($age < 16) {
+       $error = 'You must be at least 16 years old.';
+    } elseif(!preg_match('/^[0-9]{11}$/', $phone)) {
+        $error = 'You inserted an Invalid phone number!';
+    }
+    elseif (strlen($password) < 8) {
         $error = "Password must be at least 8 characters.";
-
     } else {
-
-
-        /*
-         * Create password hash.
-         *
-         * password_hash() does not exist in PHP 5.4,
-         * so we use crypt() with bcrypt.
-         */
-
+        /*Create password hash.*/
         $salt = '$2y$10$' .
             substr(
                 str_replace(
@@ -87,128 +87,73 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $hashed_password = crypt($password, $salt);
 
-
-        /*
-         * Insert student.
-         *
-         * MySQL automatically creates the ID.
-         */
-
+        //Db response variable
         $stmt = $conn->prepare("
             INSERT INTO students_info
             (
                 full_name,
+                username,
                 date_of_birth,
                 gender,
                 phone,
                 password
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
 
-
-        /*
-         * Make sure prepare() worked.
-         */
-
+        /*Make sure prepare() worked.*/
         if (!$stmt) {
-
             $error = "Database error: " . $conn->error;
-
         } else {
-
-
-            /*
-             * Bind form values.
-             */
-
             $stmt->bind_param(
-                "sssss",
+                "ssssss",
                 $full_name,
+                $username,
                 $date_of_birth,
                 $gender,
                 $phone,
                 $hashed_password
             );
 
-
-            /*
-             * Execute INSERT.
-             */
-
+            /*Execute INSERT.*/
             if ($stmt->execute()) {
-
-
-                /*
-                 * Get the AUTO_INCREMENT ID.
-                 */
-
                 $student_id = $conn->insert_id;
-
-
-                /*
-                 * Generate matric number.
-                 */
-
                 $matric_no = "kwasu_cs_" . $student_id;
-
-
-                /*
-                 * Update the student's matric number.
-                 */
-
                 $update = $conn->prepare("
-                    UPDATE students_info
-                    SET matric_no = ?
-                    WHERE id = ?
+                UPDATE students_info
+                SET matric_no = ?
+                WHERE id= ?
                 ");
-
-
                 if (!$update) {
-
                     $error = "Could not generate matric number: " . $conn->error;
-
-                } else {
-
-                    $update->bind_param(
-                        "si",
-                        $matric_no,
-                        $student_id
-                    );
-
-
-                    if ($update->execute()) {
-
-                        /*
-                         * Registration successful.
-                         */
-
-                        $update->close();
-                        $stmt->close();
-
-                        header("Location: /kwasu_demo/login");
-                        exit;
-
                     } else {
-
-                        $error = "Could not save matriculation number: "
-                            . $update->error;
-
-                        $update->close();
-                    }
-                }
-
-
+                        $update->bind_param(
+                            "si",
+                            $matric_no,
+                            $student_id
+                            );
+                            
+                            
+                            if ($update->execute()) {
+                                $update->close();
+                                $stmt->close();
+                                
+                                //$redirect = "Location: /kwasu_demo/login?registered=" . $matric_no;
+                                $redirect = "Location: /kwasu_demo/login?registered=1";
+                                header($redirect);
+                                exit;
+                                } else {
+                                    $error = "Could not save matriculation number: ". $update->error;
+                                    $update->close();
+                                }
+                            }
             } else {
-
                 $error = "Registration failed: " . $stmt->error;
             }
-
             $stmt->close();
         }
     }
 }
-
 ?>
 
 
@@ -219,174 +164,216 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Create Student Account</title>
+        <title>Join Kwasu today!</title>
         <style>
-            * {
-                box-sizing: border-box;
-            }
-            
-            body {
-                margin: 0;
+             * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
         font-family: Arial, sans-serif;
         background: #f7f7f7;
         color: #222;
     }
 
     main {
-        width: min(650px, 92%);
-        margin: 50px auto;
+        width: min(420px, 92%);
+        margin: 40px auto;
     }
-    
     header {
         margin-bottom: 25px;
     }
-    
     h1 {
         margin: 0 0 8px;
         font-size: 28px;
     }
-    
     header p {
         margin: 0;
         color: #666;
     }
-    
     form {
-        background: #fff;
         border: 1px solid #ddd;
         border-radius: 8px;
         padding: 25px;
     }
-    
     fieldset {
         border: 0;
         padding: 0;
         margin: 0;
     }
-    
     legend {
         font-size: 18px;
         font-weight: 600;
         margin-bottom: 22px;
     }
-    
-    .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px;
-    }
-    
     .field {
         display: flex;
         flex-direction: column;
         gap: 7px;
+        margin-bottom: 18px;
     }
-    
-    .full {
-        grid-column: 1 / -1;
-    }
-    
     label {
         font-size: 14px;
         font-weight: 500;
     }
-
-    input,
-    select {
+    input {
         width: 100%;
         padding: 11px 12px;
         border: 1px solid #ccc;
         border-radius: 6px;
         font: inherit;
-        background: #fff;
-        color: #222;
         outline: none;
     }
-    
-    input:focus,
-    select:focus {
+    input:focus {
         border-color: #222;
     }
-    
     button {
         width: 100%;
-        margin-top: 25px;
         padding: 11px;
         border: 0;
         border-radius: 6px;
-        background: #222;
+        background: green;
         color: white;
         font: inherit;
         cursor: pointer;
     }
-    
     button:hover {
         background: #444;
     }
-    
-    .error {
+        #cards {
+            margin: 45px 0;
+            width: 100%;
+            display: grid;
+            column-gap: 1rem;
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        #box_2 {
+            padding: 20px 1%;
+            margin: 0 auto;
+            width: 70%;
+        }
+
+        .card_box {
+            grid-column: auto;
+            box-shadow: inset;
+            padding: 4px 12px;
+        }
+
+        .card_box_header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .card_box_desc {
+            font-size: 16px;
+            font-weight: 400;
+            margin-bottom: 5px;
+        }
+
+        .card_box_button {
+            margin-top: 16px;
+            border-radius: 3px;
+            background-color: green;
+            padding: 4px 14px;
+            outline: none;
+            border: none;
+            color: white;
+        }
+
+    .message {
         margin-bottom: 20px;
         padding: 10px 12px;
         border-radius: 6px;
-        background: #fff0f0;
-        color: #b00020;
         font-size: 14px;
     }
-    
-    .login {
+
+    .error {
+        background: #fff0f0;
+        color: #b00020;
+    }
+
+    .success {
+        background: #f0fff4;
+        color: #176b36;
+    }
+
+    .signup {
         margin-top: 18px;
         text-align: center;
         font-size: 14px;
         color: #666;
     }
-    
-    .login a {
+
+    .signup a {
         color: #222;
         font-weight: 500;
     }
-    
-    @media (max-width: 600px) {
-        main {
-            margin: 30px auto;
-        }
-        
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .full {
-            grid-column: auto;
-        }
-    }
 </style>
 </head>
-<body>
-    <main>
-        <?php if ($error): ?>
-            <div class="error">
-                <?= htmlspecialchars($error) ?>
-            </div>
-            <?php endif; ?>
+<body style="height: fit-content; display: flex;">    
+    <section style="background-color:green; width:30%; ">
+        <img />
+    </section>
+    <section id="box_2">
+        <nav style="float: right">
+            <button style="padding: 1px 3px; border-radius: 3px;">En</button>
+        </nav>
+        
+        <!-- The logo part and title description -->
+        <div style=" margin: 0.2rem auto; width: fit-content;">
+            <img style="margin: 0 auto; " width="150px" height="150px" src="public/KWASU_kwasu-transparent.png" />
+            <p
+            style="text-align: center; font-weight: 700; font-family: Arial, Helvetica, sans-serif; color: green; font-size: 1.25rem;">
+    Kwara State University,
+    Malete</p>
+        </div>
 
-            <?php 
-            echo PHP_VERSION;
-             ?>
+        
+        <main>
 
-<form method="POST">
+<?php if ($error): ?>
+
+    <div class="message error">
+        <?= htmlspecialchars($error) ?>
+    </div>
+<?php endif; ?>
+
+
+
+<form  method="POST">
     <fieldset>
         <legend>Student Information</legend>
-
         <div class="form-grid">
 
             <div class="field full">
                 <label for="full_name">Full Name</label>
-
                 <input
                     type="text"
                     id="full_name"
                     name="full_name"
                     value="<?= isset($_POST["full_name"]) ? htmlspecialchars($_POST["full_name"]) : "" ?>"
                     autocomplete="name"
+                    required
+                    >
+                </div>
+                
+                
+                <div class="field">
+                    <label for="username">
+                        Student Id
+                    </label>
+                    
+                    <input
+                    type="text"
+                    placeholder="Enter a unique username!"
+                    id="username"
+                    name="username"
+                    value="<?= isset($_POST["username"]) ? htmlspecialchars($_POST["username"]) : "" ?>"
+            
+                    autocomplete="username"
                     required
                 >
             </div>
@@ -404,6 +391,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     required
                 >
             </div>
+           
 
             <div class="field">
                 <label for="gender">Gender</label>
@@ -479,6 +467,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
 </main>
-
+        </section>
 </body>
 </html>
+

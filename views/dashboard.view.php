@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . "/../model/db.php";
+require_once __DIR__ . '/../model/image.model.php';
 
 // User must be logged in
 if (!isset($_SESSION["student_id"])) {
@@ -16,7 +17,8 @@ $stmt = $conn->prepare("
         full_name,
         date_of_birth,
         gender,
-        phone
+        phone,
+        username
     FROM students_info
     WHERE id = ?
     LIMIT 1
@@ -74,7 +76,7 @@ $stmt->close();
         margin-bottom: 30px;
     }
 
-    article {
+    article, form {
         background: white;
         border: 1px solid #e7e7e7;
         border-radius: 10px;
@@ -121,6 +123,10 @@ $stmt->close();
         background: #444;
     }
 
+    form{ 
+        margin: 25px auto;
+        display: block;
+    }
     @media (max-width: 600px) {
         body {
             padding: 25px 15px;
@@ -136,18 +142,67 @@ $stmt->close();
             padding: 20px;
         }
     }
+    
+    .gallery-card img {
+    width: 100%;
+    max-width: 300px;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.profile-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eee;
+    font-size: 40px;
+}
 </style>
 </head>
 
 <body>
-<section>
-    <h1>Welcome to your Dashboard, 
-          <?= htmlspecialchars($student["full_name"]) ?>
-    </h1>
-    <p>Your journey starts here gee </p>
+    
+    <section>
+        <h1>Welcome to your Kwasu, 
+            <?= htmlspecialchars($student["full_name"]) ?>
+        </h1>
+        <p>Your journey starts here gee </p>
+        <article style="margin: 40px auto;" class="gallery-card">
+            
+    <?php if ($image): ?>
+  <img
+            src="<?= imageDataUri($image['image_type'], $image['image_data']); ?>"
+            alt="<?= escape($image['image_name']); ?>"
+            >
+            
+ <?php else: ?>
+    <div class="profile-image profile-placeholder">
+        <span>.</span>
+    </div>
 
+ <?php endif; ?>
+        
+        
+        <div style="margin: 12px 0px; gap: 15px;">  
+         <div class="actions" type="button">
+        <a href="dashboard/upload">    
+            Upload a new profile
+        </a>    
+    </div>    
+        </div>  
+    </article>
+
+
+    
 <article>
-
     <div>
         <h2>Full name</h2>
         <?= htmlspecialchars($student["full_name"]) ?>
@@ -158,6 +213,11 @@ $stmt->close();
         <h2>Matric no</h2>
         <?= htmlspecialchars($student["matric_no"]) ?>
         
+    </div>
+    
+    <div>
+        <h2>Unique Username</h2>
+        <?= htmlspecialchars($student["username"]) ?>    
     </div>
     
     <div>
@@ -183,12 +243,6 @@ $stmt->close();
         <a class="logout" href="logout">
             Log out
         </a>
-    </div>
-    
-    <div class="actions" type="button">
-        <a href="dashboard/edit">    
-            Upload profile
-        </a>    
     </div>
 </div>
 </section>

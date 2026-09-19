@@ -8,8 +8,8 @@ $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $matric_no = isset($_POST["matric_no"])
-        ? trim($_POST["matric_no"])
+    $matric_no = isset($_POST["username"])
+        ? trim($_POST["username"])
         : "";
 
     $password = isset($_POST["password"])
@@ -17,14 +17,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         : "";
 
     if (empty($matric_no) || empty($password)) {
-        $error = "Please enter your matriculation number and password.";
+        $error = "Please enter your Username and password.";
 
     } else {
 
         $stmt = $conn->prepare("
-            SELECT id, matric_no, full_name, password
+            SELECT id, matric_no, full_name, username, password
             FROM students_info
-            WHERE matric_no = ?
+            WHERE username = ?
             LIMIT 1
         ");
 
@@ -48,7 +48,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 exit;
 
             } else {
-
                 $error = "Invalid matriculation number or password.";
             }
 
@@ -61,6 +60,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 
+$registered = isset($_GET['registered'])
+    ? $_GET['registered']
+    : null;
 ?>
 
 <!DOCTYPE html>
@@ -68,7 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student Login</title>
+<title>Login to access your student portal!</title>
 <style>
     * {
         box-sizing: border-box;
@@ -242,26 +244,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <main>
 
 <?php if ($error): ?>
-
     <div class="message error">
         <?= htmlspecialchars($error) ?>
     </div>
 <?php endif; ?>
 
+<!--
+            <?php /*if ($registered): */?>
+                <p>Welcome to kwasu. Matric number is <em><?= htmlspecialchars($registered)  ?></em></p>
+            <?/*php endif; *??>
+            -->
 <form method="POST">
     <fieldset>
         <div class="field">
-            <label for="matric_no">
-                Matriculation Number
+            <label for="username">
+                Username
             </label>
 
             <input
                 type="text"
-                id="matric_no"
-                name="matric_no"
-                value="<?= isset($_POST["matric_no"]) ? htmlspecialchars($_POST["matric_no"]) : "" ?>"
+                id="username" 
+                name="username"
+                value="<?= isset($_POST["username"]) ? htmlspecialchars($_POST["username"]) : "" ?>"
                 autocomplete="username"
-                placeholder="kwasu_cs_1"
+                placeholder="Enter your unique username"
                 required
             >
         </div>
@@ -296,3 +302,5 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </section>
 </body>
 </html>
+
+
