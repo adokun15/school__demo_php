@@ -165,6 +165,37 @@ $stmt->close();
     background: #eee;
     font-size: 40px;
 }
+
+/*Yooooooooooo */
+    
+.registration-container {
+    width: 400px;
+    margin: 100px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 8px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+}
+
+/* Department is hidden initially */
+#department-container {
+    display: none;
+}
+
+
 </style>
 </head>
 
@@ -246,5 +277,7 @@ $stmt->close();
     </div>
 </div>
 </section>
+
+
 </body>
 </html>

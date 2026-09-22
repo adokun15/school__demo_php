@@ -52,7 +52,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
 
         } else {
-
             $error = "Invalid matriculation number or password.";
         }
 
@@ -252,7 +251,7 @@ $registered = isset($_GET['registered'])
 <!--
             <?php /*if ($registered): */?>
                 <p>Welcome to kwasu. Matric number is <em><?= htmlspecialchars($registered)  ?></em></p>
-            <?/*php endif; *??>
+            <?/*php endif; */?>
             -->
 <form method="POST">
     <fieldset>
